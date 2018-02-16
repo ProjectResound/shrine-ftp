@@ -1,0 +1,40 @@
+---
+http_interactions:
+- request:
+    method: head
+    uri: http://media.scpr.org/podcasts/upload/2017/11/28/Nov_28_2017-dfdf58d8.mp3
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 302
+      message: Found
+    headers:
+      Server:
+      - nginx/1.8.0
+      Date:
+      - Fri, 23 Feb 2018 23:37:06 GMT
+      Content-Type:
+      - text/plain; charset=utf-8
+      Content-Length:
+      - '137'
+      Connection:
+      - keep-alive
+      X-Powered-By:
+      - Express
+      Location:
+      - http://media.scpr.org/podcasts/upload/2017/11/28/Nov_28_2017-dfdf58d8.mp3?uuid=281a01cd-796a-49de-b5b6-72e16b2c7d50
+      Vary:
+      - Accept
+    body:
+      encoding: UTF-8
+      string: ''
+    http_version: 
+  recorded_at: Fri, 23 Feb 2018 23:37:15 GMT
+recorded_with: VCR 4.0.0
