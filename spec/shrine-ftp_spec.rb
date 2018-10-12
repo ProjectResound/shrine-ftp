@@ -7,11 +7,16 @@ VCR.configure do |cfg|
 end
 
 class FakeIO
-  def initialize(content)
+  def initialize(content, id)
     @content = content
+    @id = id
   end
 
   def id
+    @id
+  end
+
+  def content
     @content
   end
 end
@@ -19,12 +24,13 @@ end
 describe "#upload" do
   context "successful ftp upload" do
     it "returns" do
-      fake_io = FakeIO.new(File.read("spec/spec_helper.rb"))
+      fake_io = FakeIO.new(File.read("spec/spec_helper.rb"), "spec/spec_helper.rb")
       dir_name = 'directory'
       mock_ftp = instance_double(Net::FTP)
       expect(Net::FTP).to receive(:open).and_return(mock_ftp)
       expect(mock_ftp).to receive(:chdir).with(dir_name).and_return(true)
-      expect(mock_ftp).to receive(:putbinaryfile).with(fake_io, fake_io.id)
+      expect(mock_ftp).to receive(:chdir).with("spec").and_return(true)
+      expect(mock_ftp).to receive(:putbinaryfile).with(fake_io, "spec_helper.rb")
 
       storage = Shrine::Storage::Ftp.new(
           host: 'fakehost.com',
@@ -38,12 +44,13 @@ describe "#upload" do
 
   context "unsuccessful ftp upload" do
     it "raises an error" do
-      fake_io = FakeIO.new(File.read("spec/spec_helper.rb"))
+      fake_io = FakeIO.new(File.read("spec/spec_helper.rb"), "spec/spec_helper.rb")
       dir_name = 'directory'
       mock_ftp = instance_double(Net::FTP)
       expect(Net::FTP).to receive(:open).and_return(mock_ftp)
       expect(mock_ftp).to receive(:chdir).with(dir_name).and_return(true)
-      allow(mock_ftp).to receive(:putbinaryfile).with(fake_io, fake_io.id).
+      expect(mock_ftp).to receive(:chdir).with("spec").and_return(true)
+      allow(mock_ftp).to receive(:putbinaryfile).with(fake_io, "spec_helper.rb").
           and_raise(Net::FTPPermError)
 
       storage = Shrine::Storage::Ftp.new(
@@ -114,9 +121,22 @@ describe "#delete" do
 
         mock_ftp = instance_double(Net::FTP)
         expect(Net::FTP).to receive(:open).and_return(mock_ftp)
-        expect(mock_ftp).to receive(:chdir).with(dir_name).and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("podcasts").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("upload").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("2017").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("11").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("28").and_return(true)
         expect(mock_ftp).to receive(:delete).with(filename)
-
+        expect(mock_ftp).to receive(:chdir).with("..").and_return(true)
+        expect(mock_ftp).to receive(:rmdir).with("28").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("..").and_return(true)
+        expect(mock_ftp).to receive(:rmdir).with("11").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("..").and_return(true)
+        expect(mock_ftp).to receive(:rmdir).with("2017").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("..").and_return(true)
+        expect(mock_ftp).to receive(:rmdir).with("upload").and_return(true)
+        expect(mock_ftp).to receive(:chdir).with("..").and_return(true)
+        expect(mock_ftp).to receive(:rmdir).with("podcasts").and_return(true)
         expect(storage.delete(filename)).to be(true)
       end
     end

@@ -1,6 +1,7 @@
 require 'shrine'
 require 'net/ftp'
 require 'down'
+require 'pathname'
 
 class Shrine
   module Storage
@@ -52,9 +53,10 @@ class Shrine
       # and uses .putbinaryfile() to upload the file.
       def upload(io, id, shrine_metadata: {}, **upload_options)
         path_and_file = build_path_and_file(io)
+        directory = Pathname(@dir) + Pathname(id).dirname
         ftp = Net::FTP.open(@host, @user, @passwd)
-        change_or_create_directory(ftp)
-        ftp.putbinaryfile(path_and_file, id)
+        change_or_create_directory(ftp, directory)
+        ftp.putbinaryfile(path_and_file, Pathname(id).basename.to_s)
       end
 
       # Returns the URL of where the file is assumed to be, based on `prefix`
@@ -78,9 +80,11 @@ class Shrine
       # Deletes the file via FTP.
       def delete(id)
         if exists?(id)
+          directory = Pathname(@dir) + Pathname(id).dirname
           ftp = Net::FTP.open(@host, @user, @passwd)
-          change_or_create_directory(ftp)
-          ftp.delete(id)
+          change_or_create_directory(ftp, directory)
+          ftp.delete(Pathname(id).basename.to_s)
+          clean_directory(ftp, directory)
           return true
         end
         return false
@@ -100,13 +104,26 @@ class Shrine
         end
       end
 
-      def change_or_create_directory(ftp)
-        begin
-          ftp.chdir(@dir)
-        rescue Net::FTPPermError
-          ftp.mkdir(@dir)
-          ftp.chdir(@dir)
+      def change_or_create_directory(ftp, directory)
+        directory.descend do |path|
+          begin
+            ftp.chdir(path.basename.to_s)
+          rescue Net::FTPPermError
+            ftp.mkdir(path.basename.to_s)
+            ftp.chdir(path.basename.to_s)
+          end
         end
+      end
+
+      def clean_directory(ftp, directory)
+        directory.ascend do |path|
+            begin
+              ftp.chdir("..")
+              ftp.rmdir(path.basename.to_s)
+            rescue Net::FTPPermError
+              break
+            end
+          end
       end
     end
   end
